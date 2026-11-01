@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
 import {
   BadgeCheck,
@@ -67,6 +67,11 @@ import "./styles.css";
 type RecordingStatus = "off" | "recording" | "paused" | "finishing";
 
 const speeds = [0.5, 1, 1.5, 2] as const;
+
+const PdfAnnotationDemo = lazy(async () => {
+  const module = await import("./pdf/PdfAnnotationDemo");
+  return { default: module.PdfAnnotationDemo };
+});
 
 const configureLiquidEditor: BeforeMount = (monaco) => {
   monaco.editor.defineTheme("scrim-liquid", {
@@ -204,6 +209,7 @@ function downloadJson(session: ScrimSession): void {
 }
 
 export default function App() {
+  const [studioMode, setStudioMode] = useState<"code" | "pdf">("code");
   const [session, setSession] = useState<ScrimSession>(demoSession);
   const [workspace, setWorkspace] = useState<WorkspaceState>(() => cloneWorkspace(demoSession.initialWorkspace));
   const [playbackStatus, setPlaybackStatus] = useState<PlaybackStatus>("idle");
@@ -750,17 +756,29 @@ export default function App() {
           <b>BÊTA</b>
         </div>
         <div className="topbar-center">
-          <span className={`recording-indicator ${recordingStatus === "recording" ? "is-live" : ""}`} />
-          {recordingStatus === "recording" ? `REC ${formatTime(recordingElapsed)}` : currentBranch ? "BRANCHE PERSONNELLE" : "LEÇON INTERACTIVE"}
+          <div className="mode-switch" aria-label="Choisir une démonstration">
+            <button className={studioMode === "code" ? "active" : ""} onClick={() => setStudioMode("code")}>Code</button>
+            <button className={studioMode === "pdf" ? "active" : ""} onClick={() => setStudioMode("pdf")}>PDF annoté</button>
+          </div>
+          <span className={`recording-indicator ${studioMode === "code" && recordingStatus === "recording" ? "is-live" : ""}`} />
+          {studioMode === "pdf" ? "DÉMO DOCUMENT INTERACTIF" : recordingStatus === "recording" ? `REC ${formatTime(recordingElapsed)}` : currentBranch ? "BRANCHE PERSONNELLE" : "LEÇON INTERACTIVE"}
         </div>
         <div className="topbar-actions">
-          <button className="quiet-button" onClick={() => fileInputRef.current?.click()}><Upload size={15} /> Importer</button>
-          <input ref={fileInputRef} onChange={importSession} accept="application/json,.json,.scrim.json" type="file" hidden />
-          <button className="quiet-button" onClick={() => downloadJson(session)}><Download size={15} /> Exporter</button>
-          <button className="quiet-button" onClick={saveCurrent}><Save size={15} /> Sauvegarder</button>
+          {studioMode === "code" && <>
+            <button className="quiet-button" onClick={() => fileInputRef.current?.click()}><Upload size={15} /> Importer</button>
+            <input ref={fileInputRef} onChange={importSession} accept="application/json,.json,.scrim.json" type="file" hidden />
+            <button className="quiet-button" onClick={() => downloadJson(session)}><Download size={15} /> Exporter</button>
+            <button className="quiet-button" onClick={saveCurrent}><Save size={15} /> Sauvegarder</button>
+          </>}
         </div>
       </header>
 
+      {studioMode === "pdf" ? (
+        <Suspense fallback={<div className="pdf-demo-loading">Chargement de la démonstration PDF…</div>}>
+          <PdfAnnotationDemo />
+        </Suspense>
+      ) : (
+        <>
       <main className="studio-layout">
         <aside className="lesson-sidebar">
           <div className="lesson-badge"><Sparkles size={14} /> Atelier interactif</div>
@@ -952,6 +970,8 @@ export default function App() {
       </section>
 
       {audioUrl && <audio ref={audioRef} src={audioUrl} preload="auto" />}
+        </>
+      )}
     </div>
   );
 }

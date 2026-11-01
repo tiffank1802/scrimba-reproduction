@@ -13,6 +13,7 @@ Une reproduction **indépendante** du principe pédagogique des scrims : la plat
 - Branches personnelles : toute modification effectuée en pause crée un « essai » local sans altérer la leçon d’origine.
 - Prévisualisation HTML/CSS/JS dans une iframe isolée (`sandbox="allow-scripts"`) avec CSP restrictive et console relayée par `postMessage`.
 - Menu **Compiler** : copie le fichier actif et ouvre Rust Playground ou Compiler Explorer dans un nouvel onglet isolé.
+- Démonstration **PDF annoté** : un PDF réel généré localement, rendu avec PDF.js, dont les surlignages, commentaires, tracés, versions et branche personnelle sont rejouables dans une timeline.
 - Persistance locale des sessions, audio et branches dans IndexedDB.
 - Import/export de sessions JSON versionnées (`.scrim.json`).
 
