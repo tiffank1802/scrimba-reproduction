@@ -115,10 +115,12 @@ type TimelineVersion = {
   lane?: number;
 };
 
-/** Group bursts of authored edits into git-like, clickable timeline versions. */
+/** Every content edit becomes a visible version. Branch edits stack at their fork,
+ * just as several Git commits share the same point in the source video. */
 function buildTimelineVersions(
   session: ScrimSession,
   branches: LearnerBranch[],
+  eventSource: ScrimEvent[] = session.events,
 ): TimelineVersion[] {
   const versions: TimelineVersion[] = [
     {
@@ -129,40 +131,47 @@ function buildTimelineVersions(
       detail: "État initial de la leçon",
     },
   ];
-  const authoredEvents = session.events.filter((event) => event.kind !== "selection");
-  const groups: ScrimEvent[][] = [];
 
-  for (const event of authoredEvents) {
-    const lastGroup = groups.at(-1);
-    const lastEvent = lastGroup?.at(-1);
-    // A quiet period starts a new, meaningful version of the recording.
-    if (!lastGroup || !lastEvent || event.at - lastEvent.at > 1_200) {
-      groups.push([event]);
-    } else {
-      lastGroup.push(event);
-    }
-  }
-
-  groups.forEach((group, index) => {
-    const start = group[0].at;
-    versions.push({
-      id: `recording-v${index + 1}`,
-      at: start,
-      kind: "recording",
-      label: `v${index + 1}`,
-      detail: `${group.length} opération${group.length > 1 ? "s" : ""} enregistrée${group.length > 1 ? "s" : ""} · ${formatTime(start)}`,
+  eventSource
+    .filter((event): event is Extract<ScrimEvent, { kind: "edit" }> => event.kind === "edit")
+    .forEach((event, index) => {
+      versions.push({
+        id: `recording-v${index + 1}`,
+        at: event.at,
+        kind: "recording",
+        label: `v${index + 1}`,
+        detail: `Version ${index + 1} · ${fileDefinitions[event.fileId].label} modifié · ${formatTime(event.at)}`,
+      });
     });
-  });
 
-  branches.forEach((branch, index) => {
-    versions.push({
-      id: `branch-${branch.id}`,
-      at: branch.forkAt,
-      kind: "branch",
-      label: `essai ${index + 1}`,
-      detail: `${branch.label} · branche créée à ${formatTime(branch.forkAt)}`,
-      branchId: branch.id,
-      lane: index % 2,
+  branches.forEach((branch, branchIndex) => {
+    const edits = branch.operations.filter(
+      (event): event is Extract<ScrimEvent, { kind: "edit" }> => event.kind === "edit",
+    );
+
+    if (edits.length === 0) {
+      versions.push({
+        id: `branch-${branch.id}`,
+        at: branch.forkAt,
+        kind: "branch",
+        label: `essai ${branchIndex + 1}`,
+        detail: `${branch.label} · branche créée à ${formatTime(branch.forkAt)}`,
+        branchId: branch.id,
+        lane: branchIndex % 3,
+      });
+      return;
+    }
+
+    edits.forEach((event, revisionIndex) => {
+      versions.push({
+        id: `branch-${branch.id}-v${revisionIndex + 1}`,
+        at: branch.forkAt,
+        kind: "branch",
+        label: `b${branchIndex + 1}.${revisionIndex + 1}`,
+        detail: `Version de branche ${revisionIndex + 1} · ${fileDefinitions[event.fileId].label} modifié · ${branch.label}`,
+        branchId: branch.id,
+        lane: (branchIndex + revisionIndex) % 3,
+      });
     });
   });
 
@@ -199,6 +208,7 @@ export default function App() {
   const [playbackStatus, setPlaybackStatus] = useState<PlaybackStatus>("idle");
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("off");
   const [recordingElapsed, setRecordingElapsed] = useState(0);
+  const [recordingDraftEvents, setRecordingDraftEvents] = useState<ScrimEvent[]>([]);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<(typeof speeds)[number]>(1);
   const [lessonTitle, setLessonTitle] = useState(demoSession.title);
@@ -345,6 +355,7 @@ export default function App() {
     setLessonTitle(recordedSession.title);
     void saveSession(recordedSession);
     setRecordingStatus("off");
+    setRecordingDraftEvents([]);
     setRecordingElapsed(recordedSession.duration);
     setPlaybackStatus("paused");
     setCurrentBranchId(null);
@@ -367,6 +378,7 @@ export default function App() {
     recorder.start();
     recorderRef.current = recorder;
     audioChunksRef.current = [];
+    setRecordingDraftEvents([]);
     setRecordingElapsed(0);
     setRecordingStatus("recording");
     setNotice("Enregistrement en cours : éditez comme d’habitude.");
@@ -534,6 +546,7 @@ export default function App() {
 
       if (recordingStatusRef.current === "recording") {
         recorderRef.current?.recordEdit(fileId, changes);
+        setRecordingDraftEvents(recorderRef.current?.eventsPreview ?? []);
       } else if (recordingStatusRef.current === "off") {
         appendBranchEvent({
           id: createId("branch-edit"),
@@ -583,8 +596,29 @@ export default function App() {
     restoreOriginalAt(time);
   };
 
-  const play = () => {
+  const play = async () => {
     if (recordingStatusRef.current !== "off") return;
+
+    // Playing is an explicit checkpoint: persist the current lesson and the
+    // active learner branch before the timeline starts moving again.
+    const autosavedSession = {
+      ...sessionRef.current,
+      title: lessonTitle.trim() || "Leçon sans titre",
+    };
+    sessionRef.current = autosavedSession;
+    setSession(autosavedSession);
+    const activeBranch = branchesRef.current.find(
+      (branch) => branch.id === currentBranchRef.current,
+    );
+    try {
+      await Promise.all([
+        saveSession(autosavedSession),
+        activeBranch ? saveBranch(activeBranch) : Promise.resolve(),
+      ]);
+    } catch {
+      setNotice("Lecture lancée, mais la sauvegarde locale doit être réessayée.");
+    }
+
     if (currentBranchRef.current || playbackTimeRef.current >= sessionRef.current.duration) {
       setCurrentBranchId(null);
       currentBranchRef.current = null;
@@ -662,10 +696,15 @@ export default function App() {
   };
 
   const currentBranch = branches.find((branch) => branch.id === currentBranchId);
+  const timelineEventSource = recordingStatus === "off" ? session.events : recordingDraftEvents;
   const timelineVersions = useMemo(
-    () => buildTimelineVersions(session, branches),
-    [session, branches],
+    () => buildTimelineVersions(session, branches, timelineEventSource),
+    [session, branches, timelineEventSource],
   );
+  const timelineDuration = recordingStatus === "off"
+    ? session.duration
+    : Math.max(recordingElapsed, 1);
+  const timelineTime = recordingStatus === "off" ? playbackTime : recordingElapsed;
   const activeFile = workspace.files[workspace.activeFileId];
   const isEditorReadOnly = playbackStatus === "playing" || recordingStatus === "finishing";
 
@@ -783,12 +822,12 @@ export default function App() {
       <section className="control-deck">
         <div className="deck-notice"><span className="notice-pulse" />{notice}</div>
         <div className="timeline-row">
-          <span>{formatTime(playbackTime)}</span>
+          <span>{formatTime(timelineTime)}</span>
           <div className="timeline-stack">
             <div className="git-version-track" aria-label="Historique des versions enregistrées">
               <span className="git-trunk" aria-hidden="true" />
               {timelineVersions.map((version) => {
-                const position = session.duration > 0 ? (version.at / session.duration) * 100 : 0;
+                const position = timelineDuration > 0 ? (version.at / timelineDuration) * 100 : 0;
                 const branch = version.branchId
                   ? branches.find(({ id }) => id === version.branchId)
                   : undefined;
@@ -803,6 +842,7 @@ export default function App() {
                     } as React.CSSProperties}
                     title={version.detail}
                     aria-label={version.detail}
+                    disabled={recordingStatus !== "off"}
                     onClick={() => branch ? selectBranch(branch) : seekTo(version.at)}
                   >
                     <span className="git-version-dot" />
@@ -816,12 +856,13 @@ export default function App() {
               className="timeline"
               type="range"
               min="0"
-              max={Math.max(session.duration, 1)}
-              value={playbackTime}
+              max={timelineDuration}
+              value={timelineTime}
+              disabled={recordingStatus !== "off"}
               onChange={(event) => seekTo(Number(event.target.value))}
             />
           </div>
-          <span>{formatTime(session.duration)}</span>
+          <span>{formatTime(timelineDuration)}</span>
         </div>
         <div className="deck-controls">
           <div className="control-cluster record-controls">

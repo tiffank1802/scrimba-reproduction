@@ -56,6 +56,19 @@ export class SessionRecorder {
     return Math.max(0, Math.round(now - this.startedAt - this.pausedDuration));
   }
 
+  /** Raw events are exposed for the live Git-like version rail while recording. */
+  get eventsPreview(): ScrimEvent[] {
+    return this.events.map((event) => {
+      if (event.kind === "edit") {
+        return { ...event, changes: event.changes.map((change) => ({ ...change })) };
+      }
+      if (event.kind === "selection") {
+        return { ...event, selection: { ...event.selection } };
+      }
+      return { ...event };
+    });
+  }
+
   recordEdit(fileId: FileId, changes: TextChange[]): void {
     if (!this.active || changes.length === 0) return;
     this.events.push({

@@ -6,6 +6,8 @@ Une reproduction **indépendante** du principe pédagogique des scrims : la plat
 
 - Éditeur Monaco multi-fichiers (HTML, CSS, JavaScript).
 - Lecteur d’événements avec lecture/pause, seek, vitesses et snapshots périodiques.
+- Rail Git visible dans la timeline : chaque modification de fichier devient une version, avec les branches apprenant à leur point de fork.
+- Le bouton de lecture effectue une sauvegarde locale du scrim et de la branche active avant de relancer la timeline.
 - Enregistreur d’opérations Monaco compactées, avec une horloge logique partagée.
 - Capture audio facultative par `MediaRecorder`, synchronisée avec la session.
 - Branches personnelles : toute modification effectuée en pause crée un « essai » local sans altérer la leçon d’origine.
