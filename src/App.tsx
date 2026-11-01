@@ -10,6 +10,7 @@ import {
   Clapperboard,
   Code2,
   Download,
+  ExternalLink,
   FileCode2,
   FileJson2,
   Gauge,
@@ -216,6 +217,7 @@ export default function App() {
   const [branches, setBranches] = useState<LearnerBranch[]>([]);
   const [currentBranchId, setCurrentBranchId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [compilerMenuOpen, setCompilerMenuOpen] = useState(false);
   const [restoreNonce, setRestoreNonce] = useState(0);
 
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
@@ -672,6 +674,28 @@ export default function App() {
     );
   };
 
+  const openExternalCompiler = (target: "rust" | "godbolt") => {
+    const activeWorkspace = workspaceRef.current;
+    const file = activeWorkspace.files[activeWorkspace.activeFileId];
+    const destination = target === "rust"
+      ? "https://play.rust-lang.org/"
+      : "https://godbolt.org/";
+    const destinationLabel = target === "rust" ? "Rust Playground" : "Compiler Explorer";
+
+    // Open synchronously in the click handler so browsers do not block the tab,
+    // then copy the active source file for a deliberate paste into the compiler.
+    window.open(destination, "_blank", "noopener,noreferrer");
+    setCompilerMenuOpen(false);
+
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(file.content)
+        .then(() => setNotice(`${file.label} a été copié · collez-le dans ${destinationLabel}.`))
+        .catch(() => setNotice(`${destinationLabel} est ouvert. Copiez ${file.label} manuellement.`));
+    } else {
+      setNotice(`${destinationLabel} est ouvert. Copiez ${file.label} manuellement.`);
+    }
+  };
+
   const importSession = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -785,15 +809,40 @@ export default function App() {
         <section className="workspace-area">
           <div className="workspace-toolbar">
             <div className="breadcrumb"><Code2 size={16} /> projet <ChevronRight size={14} /> <strong>{activeFile.label}</strong></div>
-            <div className="workspace-status">
-              <span className="workspace-status-copy">
-                {isEditorReadOnly ? <><CirclePlay size={14} /> Lecture : édition verrouillée</> : currentBranch ? <><GitBranch size={14} /> Modification dans votre branche</> : <><Grip size={14} /> Prêt à explorer</>}
-              </span>
-              {!isEditorReadOnly && (
-                <button className="take-control-button" onClick={takeControl}>
-                  <Code2 size={13} /> Essayer le code
+            <div className="workspace-toolbar-actions">
+              <div className="compiler-menu">
+                <button
+                  className="compiler-button"
+                  aria-expanded={compilerMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setCompilerMenuOpen((open) => !open)}
+                >
+                  <Braces size={14} /> Compiler <ChevronRight size={13} />
                 </button>
-              )}
+                {compilerMenuOpen && (
+                  <div className="compiler-popover" role="menu" aria-label="Ouvrir un compilateur externe">
+                    <p>Copie le fichier actif, puis ouvre :</p>
+                    <button role="menuitem" onClick={() => openExternalCompiler("rust")}>
+                      <span><strong>Rust Playground</strong><small>Rust · play.rust-lang.org</small></span>
+                      <ExternalLink size={14} />
+                    </button>
+                    <button role="menuitem" onClick={() => openExternalCompiler("godbolt")}>
+                      <span><strong>Compiler Explorer</strong><small>C / C++ / Rust · godbolt.org</small></span>
+                      <ExternalLink size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="workspace-status">
+                <span className="workspace-status-copy">
+                  {isEditorReadOnly ? <><CirclePlay size={14} /> Lecture : édition verrouillée</> : currentBranch ? <><GitBranch size={14} /> Modification dans votre branche</> : <><Grip size={14} /> Prêt à explorer</>}
+                </span>
+                {!isEditorReadOnly && (
+                  <button className="take-control-button" onClick={takeControl}>
+                    <Code2 size={13} /> Essayer le code
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className="editor-frame">

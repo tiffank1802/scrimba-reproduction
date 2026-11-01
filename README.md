@@ -12,6 +12,7 @@ Une reproduction **indépendante** du principe pédagogique des scrims : la plat
 - Capture audio facultative par `MediaRecorder`, synchronisée avec la session.
 - Branches personnelles : toute modification effectuée en pause crée un « essai » local sans altérer la leçon d’origine.
 - Prévisualisation HTML/CSS/JS dans une iframe isolée (`sandbox="allow-scripts"`) avec CSP restrictive et console relayée par `postMessage`.
+- Menu **Compiler** : copie le fichier actif et ouvre Rust Playground ou Compiler Explorer dans un nouvel onglet isolé.
 - Persistance locale des sessions, audio et branches dans IndexedDB.
 - Import/export de sessions JSON versionnées (`.scrim.json`).
 

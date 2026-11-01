@@ -102,6 +102,19 @@ button:disabled { cursor: not-allowed; opacity: .46; }
 .workspace-area { display: grid; min-width: 0; grid-template-rows: 46px 1fr; border-right: 1px solid var(--line); background: rgba(12, 12, 12, .76); backdrop-filter: blur(24px) saturate(1.06); }
 .workspace-toolbar, .panel-header { display: flex; align-items: center; justify-content: space-between; min-width: 0; padding: 0 15px; border-bottom: 1px solid var(--line); }
 .workspace-toolbar { background: rgba(29, 29, 29, .72); }
+.workspace-toolbar-actions { display: flex; align-items: center; gap: 10px; }
+.compiler-menu { position: relative; }
+.compiler-button { display: inline-flex; align-items: center; gap: 5px; border: 1px solid rgba(255, 212, 79, .38); border-radius: 6px; padding: 5px 7px; color: #ffedaa; background: rgba(95, 70, 14, .22); font-size: 10px; font-weight: 700; }
+.compiler-button:hover, .compiler-button[aria-expanded="true"] { border-color: var(--yellow); background: rgba(120, 89, 15, .36); }
+.compiler-button > svg:last-child { transform: rotate(90deg); }
+.compiler-popover { position: absolute; z-index: 10; top: calc(100% + 7px); right: 0; width: 245px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .18); border-radius: 8px; padding: 6px; background: rgba(20, 20, 20, .97); box-shadow: 0 14px 35px rgba(0, 0, 0, .46); backdrop-filter: blur(18px); }
+.compiler-popover p { margin: 5px 7px 7px; color: #a8a8ae; font-size: 10px; line-height: 1.35; }
+.compiler-popover button { display: flex; align-items: center; justify-content: space-between; width: 100%; border: 0; border-radius: 5px; padding: 8px; color: #ededeb; background: transparent; text-align: left; }
+.compiler-popover button:hover { background: rgba(255, 91, 114, .15); }
+.compiler-popover span { display: grid; gap: 2px; }
+.compiler-popover strong { font-size: 11px; }
+.compiler-popover small { color: #9999a0; font-family: "DM Mono", monospace; font-size: 9px; }
+.compiler-popover button > svg { color: var(--yellow); }
 .breadcrumb { display: flex; align-items: center; gap: 6px; min-width: 0; color: #b4b4b8; font-family: "DM Mono", monospace; font-size: 11px; }
 .breadcrumb svg { color: var(--yellow); }
 .breadcrumb strong { overflow: hidden; color: #f1f1ef; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
