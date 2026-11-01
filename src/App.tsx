@@ -76,30 +76,30 @@ const configureLiquidEditor: BeforeMount = (monaco) => {
     base: "vs-dark",
     inherit: true,
     rules: [
-      { token: "comment", foreground: "71967A", fontStyle: "italic" },
+      { token: "comment", foreground: "8D8D93", fontStyle: "italic" },
       { token: "keyword", foreground: "FFD44F" },
-      { token: "string", foreground: "9BF4BA" },
+      { token: "string", foreground: "FFB0BD" },
       { token: "number", foreground: "FF9DA5" },
-      { token: "tag", foreground: "52E59A" },
-      { token: "delimiter.html", foreground: "B9D8BF" },
+      { token: "tag", foreground: "FF6F83" },
+      { token: "delimiter.html", foreground: "D6D6D6" },
     ],
     colors: {
-      "editor.background": "#0D1B13",
-      "editor.foreground": "#E8F8EB",
-      "editor.lineHighlightBackground": "#183525",
-      "editorLineNumber.foreground": "#54715C",
-      "editorLineNumber.activeForeground": "#C7E6CC",
+      "editor.background": "#101010",
+      "editor.foreground": "#F1F1EF",
+      "editor.lineHighlightBackground": "#252525",
+      "editorLineNumber.foreground": "#6F6F75",
+      "editorLineNumber.activeForeground": "#F4F4F2",
       "editorCursor.foreground": "#FFD44F",
-      "editor.selectionBackground": "#2C704B",
-      "editor.inactiveSelectionBackground": "#214D35",
-      "editorIndentGuide.background1": "#1A3A29",
-      "editorIndentGuide.activeBackground1": "#3A7652",
-      "editorWidget.background": "#14271C",
-      "editorWidget.border": "#4F8E64",
-      "editorGutter.background": "#0D1B13",
-      "scrollbarSlider.background": "#49715780",
-      "scrollbarSlider.hoverBackground": "#67A87999",
-      "scrollbarSlider.activeBackground": "#9BF4BA99",
+      "editor.selectionBackground": "#57303A",
+      "editor.inactiveSelectionBackground": "#352328",
+      "editorIndentGuide.background1": "#2A2A2A",
+      "editorIndentGuide.activeBackground1": "#5E5E5E",
+      "editorWidget.background": "#1B1B1B",
+      "editorWidget.border": "#6D6D70",
+      "editorGutter.background": "#101010",
+      "scrollbarSlider.background": "#55555A80",
+      "scrollbarSlider.hoverBackground": "#77777C99",
+      "scrollbarSlider.activeBackground": "#FFACB899",
     },
   });
 };
@@ -579,6 +579,17 @@ export default function App() {
     setNotice("Retour à la branche originale de l’instructeur.");
   };
 
+  const takeControl = () => {
+    if (recordingStatusRef.current !== "off") return;
+    if (playbackStatusRef.current === "playing") pausePlayback();
+    window.setTimeout(() => editorRef.current?.focus(), 0);
+    setNotice(
+      currentBranchRef.current
+        ? "Vous êtes dans votre branche : testez librement vos idées."
+        : "À vous de jouer : votre première modification créera une branche personnelle.",
+    );
+  };
+
   const importSession = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -712,7 +723,14 @@ export default function App() {
           <div className="workspace-toolbar">
             <div className="breadcrumb"><Code2 size={16} /> projet <ChevronRight size={14} /> <strong>{activeFile.label}</strong></div>
             <div className="workspace-status">
-              {isEditorReadOnly ? <><CirclePlay size={14} /> Lecture : édition verrouillée</> : currentBranch ? <><GitBranch size={14} /> Modification dans votre branche</> : <><Grip size={14} /> Pausez pour prendre la main</>}
+              <span className="workspace-status-copy">
+                {isEditorReadOnly ? <><CirclePlay size={14} /> Lecture : édition verrouillée</> : currentBranch ? <><GitBranch size={14} /> Modification dans votre branche</> : <><Grip size={14} /> Prêt à explorer</>}
+              </span>
+              {!isEditorReadOnly && (
+                <button className="take-control-button" onClick={takeControl}>
+                  <Code2 size={13} /> Essayer le code
+                </button>
+              )}
             </div>
           </div>
           <div className="editor-frame">
