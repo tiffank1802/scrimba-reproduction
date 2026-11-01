@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import Editor, { type OnMount } from "@monaco-editor/react";
+import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
 import {
   BadgeCheck,
   Braces,
@@ -70,6 +70,39 @@ import "./styles.css";
 type RecordingStatus = "off" | "recording" | "paused" | "finishing";
 
 const speeds = [0.5, 1, 1.5, 2] as const;
+
+const configureLiquidEditor: BeforeMount = (monaco) => {
+  monaco.editor.defineTheme("scrim-liquid", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "comment", foreground: "71967A", fontStyle: "italic" },
+      { token: "keyword", foreground: "FFD44F" },
+      { token: "string", foreground: "9BF4BA" },
+      { token: "number", foreground: "FF9DA5" },
+      { token: "tag", foreground: "52E59A" },
+      { token: "delimiter.html", foreground: "B9D8BF" },
+    ],
+    colors: {
+      "editor.background": "#0D1B13",
+      "editor.foreground": "#E8F8EB",
+      "editor.lineHighlightBackground": "#183525",
+      "editorLineNumber.foreground": "#54715C",
+      "editorLineNumber.activeForeground": "#C7E6CC",
+      "editorCursor.foreground": "#FFD44F",
+      "editor.selectionBackground": "#2C704B",
+      "editor.inactiveSelectionBackground": "#214D35",
+      "editorIndentGuide.background1": "#1A3A29",
+      "editorIndentGuide.activeBackground1": "#3A7652",
+      "editorWidget.background": "#14271C",
+      "editorWidget.border": "#4F8E64",
+      "editorGutter.background": "#0D1B13",
+      "scrollbarSlider.background": "#49715780",
+      "scrollbarSlider.hoverBackground": "#67A87999",
+      "scrollbarSlider.activeBackground": "#9BF4BA99",
+    },
+  });
+};
 
 function formatTime(milliseconds: number): string {
   const seconds = Math.max(0, Math.floor(milliseconds / 1000));
@@ -688,7 +721,8 @@ export default function App() {
               path={activeFile.path}
               language={activeFile.language}
               value={activeFile.content}
-              theme="vs-dark"
+              theme="scrim-liquid"
+              beforeMount={configureLiquidEditor}
               onMount={handleEditorMount}
               options={{
                 fontSize: 14,
