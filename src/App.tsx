@@ -527,6 +527,15 @@ export default function App() {
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor;
 
+    // The editor is the interaction surface: clicking it takes control of the
+    // scrim immediately, exactly as pausing a lesson before trying an idea.
+    editor.onMouseDown(() => {
+      if (playbackStatusRef.current === "playing") {
+        pausePlayback();
+        setNotice("Lecture mise en pause : vous avez la main sur le code.");
+      }
+    });
+
     editor.onDidChangeModelContent((event) => {
       if (applyingRef.current || playbackStatusRef.current === "playing") return;
       const modelPath = editor.getModel()?.uri.path;
