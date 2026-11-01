@@ -12,7 +12,6 @@ import {
   Download,
   FileCode2,
   FileJson2,
-  FolderGit2,
   Gauge,
   GitBranch,
   Grip,
@@ -25,7 +24,6 @@ import {
   Play,
   Plus,
   Redo2,
-  RotateCcw,
   Save,
   SkipBack,
   Sparkles,
@@ -34,7 +32,6 @@ import {
   Upload,
   Volume2,
   WandSparkles,
-  X,
 } from "lucide-react";
 import { demoSession } from "./core/demo";
 import { parseImportedSession } from "./core/import";
@@ -58,7 +55,6 @@ import {
 } from "./core/session";
 import { PreviewFrame } from "./preview/PreviewFrame";
 import {
-  deleteBranch,
   getAudio,
   listBranches,
   saveAudio,
@@ -622,27 +618,6 @@ export default function App() {
     setNotice(`Branche « ${branch.label} » ouverte.`);
   };
 
-  const discardBranch = (branch: LearnerBranch) => {
-    void deleteBranch(branch.id);
-    const nextBranches = branchesRef.current.filter(({ id }) => id !== branch.id);
-    branchesRef.current = nextBranches;
-    setBranches(nextBranches);
-    if (currentBranchRef.current === branch.id) {
-      setCurrentBranchId(null);
-      currentBranchRef.current = null;
-      restoreOriginalAt(branch.forkAt);
-    }
-    setNotice("Branche supprimée. La session d’origine n’a jamais été modifiée.");
-  };
-
-  const returnToLesson = () => {
-    const time = playbackTimeRef.current;
-    setCurrentBranchId(null);
-    currentBranchRef.current = null;
-    restoreOriginalAt(time);
-    setNotice("Retour à la branche originale de l’instructeur.");
-  };
-
   const takeControl = () => {
     if (recordingStatusRef.current !== "off") return;
     if (playbackStatusRef.current === "playing") pausePlayback();
@@ -751,33 +726,6 @@ export default function App() {
                 );
               })}
             </div>
-          </section>
-
-          <section className="sidebar-section branch-section">
-            <div className="section-heading">
-              <GitBranch size={15} /> Mes explorations
-              <span className="section-count">{branches.length}</span>
-            </div>
-            {branches.length === 0 ? (
-              <div className="empty-branch">
-                <FolderGit2 size={20} />
-                <p>Pausez et modifiez le code pour créer une branche personnelle.</p>
-              </div>
-            ) : (
-              <div className="branch-list">
-                {branches.map((branch) => (
-                  <div className={`branch-item ${branch.id === currentBranchId ? "selected" : ""}`} key={branch.id}>
-                    <button onClick={() => selectBranch(branch)}>
-                      <GitBranch size={14} />
-                      <span>{branch.label}</span>
-                      <small>à {formatTime(branch.forkAt)}</small>
-                    </button>
-                    <button className="delete-branch" onClick={() => discardBranch(branch)} title="Supprimer cette branche" aria-label="Supprimer cette branche"><X size={13} /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {currentBranch && <button className="return-button" onClick={returnToLesson}><RotateCcw size={14} /> Revenir à l’original</button>}
           </section>
 
           <section className="privacy-note">
