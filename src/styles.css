@@ -74,7 +74,7 @@ button:disabled { cursor: not-allowed; opacity: .46; }
 .quiet-button, .icon-button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 7px; padding: 8px 9px; color: #c5c5c8; background: transparent; font-size: 12px; font-weight: 700; }
 .quiet-button:hover, .icon-button:hover { border-color: rgba(255, 172, 184, .24); color: var(--ink); background: rgba(255, 91, 114, .10); }
 
-.studio-layout { height: calc(100vh - 197px); min-height: 500px; display: grid; grid-template-columns: 255px minmax(400px, 1fr) minmax(330px, .73fr); }
+.studio-layout { height: calc(100vh - 218px); min-height: 500px; display: grid; grid-template-columns: 255px minmax(400px, 1fr) minmax(330px, .73fr); }
 .lesson-sidebar { overflow-y: auto; padding: 24px 18px 18px; border-right: 1px solid var(--line); background: var(--glass); backdrop-filter: blur(26px) saturate(1.08); }
 .lesson-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid rgba(255, 91, 114, .37); border-radius: 6px; color: var(--accent-bright); background: rgba(104, 28, 42, .30); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .lesson-title-input { width: 100%; margin: 13px 0 8px; border: 0; outline: none; color: var(--ink); background: transparent; font-size: 19px; font-weight: 700; letter-spacing: -.045em; }
@@ -143,10 +143,26 @@ button:disabled { cursor: not-allowed; opacity: .46; }
 .console-message { display: flex; align-items: flex-start; gap: 4px; margin: 0; color: #c6c6ca; font-size: 10px; line-height: 1.35; }
 .console-message.error { color: #ffabb3; }.console-message.warn { color: var(--yellow-soft); }
 
-.control-deck { height: 135px; border-top: 1px solid var(--line); padding: 11px 27px 12px; background: rgba(12, 12, 12, .88); box-shadow: 0 -12px 30px rgba(0,0,0,.1); backdrop-filter: blur(24px) saturate(1.1); }
-.deck-notice { display: flex; align-items: center; gap: 7px; height: 18px; color: #b8b8bc; font-size: 11px; }
+.control-deck { height: 156px; border-top: 1px solid var(--line); padding: 10px 27px 11px; background: rgba(12, 12, 12, .88); box-shadow: 0 -12px 30px rgba(0,0,0,.1); backdrop-filter: blur(24px) saturate(1.1); }
+.deck-notice { display: flex; align-items: center; gap: 7px; height: 17px; color: #b8b8bc; font-size: 11px; }
 .notice-pulse { width: 5px; height: 5px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 9px rgba(255, 212, 79, .75); }
-.timeline-row { display: grid; grid-template-columns: 38px 1fr 38px; align-items: center; gap: 10px; margin-top: 4px; color: #a6a6ac; font-family: "DM Mono", monospace; font-size: 10px; }
+.timeline-row { display: grid; grid-template-columns: 38px 1fr 38px; align-items: end; gap: 10px; margin-top: 2px; color: #a6a6ac; font-family: "DM Mono", monospace; font-size: 10px; }
+.timeline-row > span { padding-bottom: 4px; }
+.timeline-stack { display: grid; min-width: 0; grid-template-rows: 25px 15px; }
+.git-version-track { position: relative; min-width: 0; height: 25px; }
+.git-trunk { position: absolute; top: 15px; right: 0; left: 0; height: 1px; background: rgba(255, 255, 255, .28); }
+.git-version { position: absolute; z-index: 1; top: 5px; left: var(--at); display: grid; width: 26px; justify-items: center; border: 0; padding: 0; color: #acacb2; background: transparent; transform: translateX(-50%); font-family: "DM Mono", monospace; }
+.git-version:hover, .git-version:focus-visible { color: #fff6cd; outline: none; }
+.git-version-dot { position: relative; display: block; width: 11px; height: 11px; border: 2px solid #202020; border-radius: 50%; background: #88888f; box-shadow: 0 0 0 1px rgba(255, 255, 255, .18); transition: transform .15s, background .15s; }
+.git-version:hover .git-version-dot, .git-version:focus-visible .git-version-dot { transform: scale(1.26); }
+.git-version-label { position: absolute; top: -13px; white-space: nowrap; font-size: 8px; font-weight: 700; letter-spacing: .02em; opacity: .88; }
+.git-version.root { left: 0; transform: translateX(0); width: 32px; justify-items: start; color: var(--yellow-soft); }
+.git-version.root .git-version-dot { border-radius: 3px; background: var(--yellow); }
+.git-version.recording .git-version-dot { background: var(--accent); }
+.git-version.branch { top: calc(-2px - var(--branch-offset)); color: #ffb7c0; }
+.git-version.branch .git-version-dot { border-radius: 3px; background: #ff9cab; }
+.git-version.branch .git-version-dot::after { position: absolute; top: 9px; left: 3px; width: 1px; height: 9px; background: #ff9cab; content: ""; }
+.git-version.current .git-version-dot { background: var(--yellow); box-shadow: 0 0 0 1px #fff, 0 0 12px rgba(255, 212, 79, .65); }
 .timeline { width: 100%; height: 15px; margin: 0; appearance: none; background: transparent; }
 .timeline::-webkit-slider-runnable-track { height: 4px; border-radius: 10px; background: rgba(255, 255, 255, .18); }
 .timeline::-moz-range-track { height: 4px; border-radius: 10px; background: rgba(255, 255, 255, .18); }.timeline::-moz-range-progress { height: 4px; border-radius: 10px; background: var(--accent); }
@@ -164,4 +180,4 @@ button:disabled { cursor: not-allowed; opacity: .46; }
 .speed-controls button { border: 1px solid transparent; border-radius: 5px; padding: 4px 5px; color: #aaaab0; background: transparent; font-family: "DM Mono", monospace; font-size: 10px; }.speed-controls button:hover, .speed-controls button.selected { border-color: rgba(255, 212, 79, .32); color: var(--yellow-soft); background: rgba(107, 81, 13, .29); }.volume-icon { margin-left: 7px; color: var(--yellow); }
 
 @keyframes pulse { 50% { box-shadow: 0 0 0 8px transparent; } }
-@media (max-height: 720px) { .studio-layout { height: calc(100vh - 176px); }.control-deck { height: 115px; }.lesson-sidebar { padding-top: 16px; }.metric-row { margin: 14px 0; }.sidebar-section { margin-top: 14px; } }
+@media (max-height: 720px) { .studio-layout { height: calc(100vh - 198px); }.control-deck { height: 136px; }.lesson-sidebar { padding-top: 16px; }.metric-row { margin: 14px 0; }.sidebar-section { margin-top: 14px; } }

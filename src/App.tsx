@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
 import {
   BadgeCheck,
@@ -107,6 +107,70 @@ const configureLiquidEditor: BeforeMount = (monaco) => {
 function formatTime(milliseconds: number): string {
   const seconds = Math.max(0, Math.floor(milliseconds / 1000));
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+type TimelineVersion = {
+  id: string;
+  at: number;
+  kind: "root" | "recording" | "branch";
+  label: string;
+  detail: string;
+  branchId?: string;
+  lane?: number;
+};
+
+/** Group bursts of authored edits into git-like, clickable timeline versions. */
+function buildTimelineVersions(
+  session: ScrimSession,
+  branches: LearnerBranch[],
+): TimelineVersion[] {
+  const versions: TimelineVersion[] = [
+    {
+      id: "main-root",
+      at: 0,
+      kind: "root",
+      label: "main",
+      detail: "État initial de la leçon",
+    },
+  ];
+  const authoredEvents = session.events.filter((event) => event.kind !== "selection");
+  const groups: ScrimEvent[][] = [];
+
+  for (const event of authoredEvents) {
+    const lastGroup = groups.at(-1);
+    const lastEvent = lastGroup?.at(-1);
+    // A quiet period starts a new, meaningful version of the recording.
+    if (!lastGroup || !lastEvent || event.at - lastEvent.at > 1_200) {
+      groups.push([event]);
+    } else {
+      lastGroup.push(event);
+    }
+  }
+
+  groups.forEach((group, index) => {
+    const start = group[0].at;
+    versions.push({
+      id: `recording-v${index + 1}`,
+      at: start,
+      kind: "recording",
+      label: `v${index + 1}`,
+      detail: `${group.length} opération${group.length > 1 ? "s" : ""} enregistrée${group.length > 1 ? "s" : ""} · ${formatTime(start)}`,
+    });
+  });
+
+  branches.forEach((branch, index) => {
+    versions.push({
+      id: `branch-${branch.id}`,
+      at: branch.forkAt,
+      kind: "branch",
+      label: `essai ${index + 1}`,
+      detail: `${branch.label} · branche créée à ${formatTime(branch.forkAt)}`,
+      branchId: branch.id,
+      lane: index % 2,
+    });
+  });
+
+  return versions.sort((left, right) => left.at - right.at || left.kind.localeCompare(right.kind));
 }
 
 function selectionFromMonaco(selection: {
@@ -623,9 +687,12 @@ export default function App() {
   };
 
   const currentBranch = branches.find((branch) => branch.id === currentBranchId);
+  const timelineVersions = useMemo(
+    () => buildTimelineVersions(session, branches),
+    [session, branches],
+  );
   const activeFile = workspace.files[workspace.activeFileId];
   const isEditorReadOnly = playbackStatus === "playing" || recordingStatus === "finishing";
-  const progress = session.duration > 0 ? (playbackTime / session.duration) * 100 : 0;
 
   return (
     <div className="app-shell">
@@ -769,16 +836,43 @@ export default function App() {
         <div className="deck-notice"><span className="notice-pulse" />{notice}</div>
         <div className="timeline-row">
           <span>{formatTime(playbackTime)}</span>
-          <input
-            aria-label="Position dans la leçon"
-            className="timeline"
-            type="range"
-            min="0"
-            max={Math.max(session.duration, 1)}
-            value={playbackTime}
-            onChange={(event) => seekTo(Number(event.target.value))}
-            style={{ "--progress": `${progress}%` } as React.CSSProperties}
-          />
+          <div className="timeline-stack">
+            <div className="git-version-track" aria-label="Historique des versions enregistrées">
+              <span className="git-trunk" aria-hidden="true" />
+              {timelineVersions.map((version) => {
+                const position = session.duration > 0 ? (version.at / session.duration) * 100 : 0;
+                const branch = version.branchId
+                  ? branches.find(({ id }) => id === version.branchId)
+                  : undefined;
+                const isCurrentBranch = version.branchId === currentBranchId;
+                return (
+                  <button
+                    key={version.id}
+                    className={`git-version ${version.kind} ${isCurrentBranch ? "current" : ""}`}
+                    style={{
+                      "--at": `${position}%`,
+                      "--branch-offset": `${(version.lane ?? 0) * 7}px`,
+                    } as React.CSSProperties}
+                    title={version.detail}
+                    aria-label={version.detail}
+                    onClick={() => branch ? selectBranch(branch) : seekTo(version.at)}
+                  >
+                    <span className="git-version-dot" />
+                    <span className="git-version-label">{version.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              aria-label="Position dans la leçon"
+              className="timeline"
+              type="range"
+              min="0"
+              max={Math.max(session.duration, 1)}
+              value={playbackTime}
+              onChange={(event) => seekTo(Number(event.target.value))}
+            />
+          </div>
           <span>{formatTime(session.duration)}</span>
         </div>
         <div className="deck-controls">
